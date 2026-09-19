@@ -5,7 +5,7 @@ from typing import Any, Literal, cast
 
 from agents import Model, ModelSettings, OpenAIChatCompletionsModel, OpenAIResponsesModel
 
-# LiteLLM is optional - only available if openai-agents[litellm] is installed
+# LiteLLM is optional - only available if the `litellm` extra is installed
 try:
     from agents.extensions.models.litellm_model import LitellmModel
 
@@ -191,8 +191,8 @@ def _reasoning_effort_value(value: object) -> ReasoningEffortValue | None:
     return None
 
 
-def _reasoning_summary_value(value: Any) -> ReasoningSummaryValue | None:
-    if value in {"auto", "concise", "detailed"}:
+def _reasoning_summary_value(value: object) -> ReasoningSummaryValue | None:
+    if isinstance(value, str) and value in {"auto", "concise", "detailed"}:
         return cast(ReasoningSummaryValue, value)
     return None
 

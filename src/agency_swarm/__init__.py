@@ -30,7 +30,6 @@ from agents import (  # noqa: E402
     RunConfig,
     RunContextWrapper,
     RunHooks,
-    Runner,
     RunResult,
     RunResultStreaming,
     StopAtTools,
@@ -50,9 +49,9 @@ from agents import (  # noqa: E402
 
 _JUPYTER_AVAILABLE = importlib.util.find_spec("jupyter_client") is not None
 _OPENCLAW_DEPS_AVAILABLE = (
-    importlib.util.find_spec("fastapi") is not None and importlib.util.find_spec("httpx") is not None
+    importlib.util.find_spec("fastapi") is not None and importlib.util.find_spec("httpx2") is not None
 )
-_OPENCLAW_AGENT_DEPS_AVAILABLE = importlib.util.find_spec("httpx") is not None
+_OPENCLAW_AGENT_DEPS_AVAILABLE = importlib.util.find_spec("httpx2") is not None
 _LITELLM_EXPORT_AVAILABLE = (
     importlib.util.find_spec("litellm") is not None
     and importlib.util.find_spec("agents.extensions.models.litellm_model") is not None
@@ -66,6 +65,8 @@ from openai.types.shared import Reasoning  # noqa: E402
 from .agency.core import Agency  # noqa: E402
 from .agent.core import AgencyContext, Agent  # noqa: E402
 from .agent.execution_streaming import StreamingRunResponse  # noqa: E402
+from .agent.openai_client import loop_scoped_http_client  # noqa: E402
+from .agent.runner import Runner, run_state_from_json, run_state_to_json  # noqa: E402
 from .context import MasterContext  # noqa: E402
 from .hooks import PersistenceHooks  # noqa: E402
 from .integrations.fastapi import run_fastapi  # noqa: E402
@@ -115,6 +116,7 @@ __all__ = [
     "Agent",
     "Agency",
     "AgencyContext",
+    "loop_scoped_http_client",
     "AfterEveryUserMessage",
     "EveryNToolCalls",
     "StreamingRunResponse",
@@ -126,6 +128,8 @@ __all__ = [
     "run_fastapi",
     "run_realtime",
     "run_mcp",
+    "run_state_to_json",
+    "run_state_from_json",
     # Re-exports from Agents SDK
     "SDKAgent",
     "Runner",
@@ -235,8 +239,12 @@ def __getattr__(name: str):
         except ImportError as exc:
             raise ImportError(
                 "`litellm` is required to use the LitellmModel. "
-                "You can install it via the optional dependency group: "
-                "`pip install 'agency-swarm[litellm]'`."
+                "Install it with uv: `uv add 'agency-swarm[litellm]'` after adding "
+                '`override-dependencies = ["openai>=3,<4"]` under `[tool.uv]` in '
+                "pyproject.toml (litellm still pins `openai<3`). On pip, run "
+                "`pip install agency-swarm` then `pip install litellm --no-deps` — "
+                "a fragile workaround that skips litellm's own dependencies. "
+                "See https://agency-swarm.ai/additional-features/third-party-models"
             ) from exc
         from .streaming.litellm_reasoning import patch_litellm_thinking_blocks
 

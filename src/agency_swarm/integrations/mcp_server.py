@@ -13,8 +13,7 @@ from fastmcp.exceptions import McpError
 from fastmcp.server.dependencies import get_http_headers
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.server import Transport
-from fastmcp.tools.tool import Tool, ToolResult
-from mcp.types import ErrorData
+from fastmcp.tools import Tool, ToolResult
 
 from agency_swarm.tools import BaseTool, ToolFactory
 
@@ -67,7 +66,7 @@ def _load_tools_from_directory(tools_dir: str) -> list[type[BaseTool] | Function
 
 def run_mcp(
     tools: list[type[BaseTool] | FunctionTool] | str,
-    host: str = "0.0.0.0",
+    host: str = "127.0.0.1",
     port: int = 8000,
     app_token_env: str | None = "APP_TOKEN",
     server_name: str = "mcp-tools-server",
@@ -79,7 +78,8 @@ def run_mcp(
     Launch a FastMCP server exposing BaseTool and FunctionTool instances.
     Args:
         tools: List of BaseTool/FunctionTool classes or path to directory containing tools.
-        host: Host to bind the server to.
+        host: Host to bind the server to. Defaults to loopback (127.0.0.1);
+            pass "0.0.0.0" explicitly to bind all interfaces.
         port: Port to bind the server to.
         app_token_env: Environment variable name for authentication token. Provide None to disable authentication.
         server_name: Name identifier for the MCP server
@@ -121,15 +121,13 @@ def run_mcp(
                 async def on_request(self, ctx: MiddlewareContext, call_next):
                     hdrs = get_http_headers()
                     if hdrs.get("authorization") != self.expected:
-                        error = ErrorData(code=401, message="Unauthorized")
-                        raise McpError(error)
+                        raise McpError(401, "Unauthorized")
                     return await call_next(ctx)
 
                 async def on_read_resource(self, ctx: MiddlewareContext, call_next):
                     hdrs = get_http_headers()
                     if hdrs.get("authorization") != self.expected:
-                        error = ErrorData(code=401, message="Unauthorized")
-                        raise McpError(error)
+                        raise McpError(401, "Unauthorized")
                     return await call_next(ctx)
 
             mcp.add_middleware(StaticBearer(app_token))
